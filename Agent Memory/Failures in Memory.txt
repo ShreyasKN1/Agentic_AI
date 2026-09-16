@@ -1,0 +1,77 @@
+Failures in Memory:
+1) System storing something that shouldn't become memory,
+   Example:
+User: "I'm thinking about moving to London."
+Memory becomes:
+User lives in London.
+That's a memory formation error.
+=====================================================================================================================
+
+2)Retrieving the wrong memory
+The memory is correct:
+User likes vegetarian food.
+But the agent retrieves:
+User once ate chicken in 2022.
+because it happened to be semantically similar.
+That's a retrieval/ranking failure.
+=====================================================================================================================
+
+3)Stale memory
+The system remembers:
+User works at Company A.
+Six months later:
+User works at Company B.
+But the agent still uses Company A.
+That's a memory update / freshness failure.
+=====================================================================================================================
+
+4) Contradictory memories
+User prefers Android.
+User prefers iPhone.
+The agent doesn't know which is current.
+That's a conflict-resolution failure.
+=====================================================================================================================
+
+5) Over-personalization
+This one is subtle.
+The agent remembers:
+User liked restaurant X last year.
+Then recommends X forever.
+The memory technically works but the agent overuses memory.
+
+Good memory systems need to understand:
+Past behavior ≠ permanent preference.
+=====================================================================================================================
+
+6)Memory pollution
+Imagine thousands of low-value memories:
+User asked about weather.
+User asked about pizza.
+User mentioned a meeting.
+User said "thanks."
+User asked a random question "Something regarding meeting"
+
+Eventually the memory store becomes noisy.
+Then retrieval quality deteriorates.
+
+This is why pruning, importance scoring, consolidation and decay matter.
+=====================================================================================================================
+
+7) Loss of provenance
+The agent remembers:
+User's budget is ₹2 lakh.
+But doesn't know:
+When was this said?
+For what?
+Was it a hard constraint?
+Was it hypothetical?
+Did the user change it?
+
+A bare fact can be dangerous.
+A better memory might be:
+
+Budget = ₹2 lakh
+Context = Japan trip
+Source = explicit user statement
+Date = recent
+Confidence = high
