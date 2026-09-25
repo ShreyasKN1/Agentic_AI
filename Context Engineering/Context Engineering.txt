@@ -1,0 +1,131 @@
+Context Engineering:
+
+Optimizing the use of token and ending up what we wanted in the outcome.
+providing agent-right information at right time
+prompt engineering is an subtype of context engineering
+
+think about it yourself, prompt engineering is useful when we just want an answer to the question, like how we ask in normal chatgpt->we are trying to enchrich output with what we want
+ but when we go with big picture like agents->agent might do the following to come to an output-> maybe browsing the cache, make some API calls, writing code where prompt engineering might not work
+
+
+LLM{RAM}------> Context {fixed working memory that fills up fast for the agent}
+
+As the problem builds itself, as ram fills up more-> performance of the system degrades
+same context piles up, huge context degrades agent reasoning [context drop].
+
+According to one of the blogs, since llm are based on transformers -> each token attends to next token within same context resulting in n power 2 pairwise relationship for n tokens.
+like imagine a person trying to remember everything happened during couple of days, one might forget usful info.
+
+What might be an agent context:
+1)System prompts: instructions on what the system has to do, workflows, instructions to perform that flow, unresolved issues,what to do and what not to do.
+2)Tool definitions: What schema & input parameter does the model expects [go through mcp or tool calling first before context engineering].
+3)toolcall results: now what type of structured output we expect after tool executuion-> serliase ->llm and then output in whyat format.
+4)RAG,retrived docs: docs,vectorStore, even API responses.
+5)Conversation history: full contextual information.
+6) Memory: there is whole repo made for memory related context you can go through it.
+7)agent state/current plan-> how the tool is executed on certain tasks.
+
+
+4 core strategies you need to know is used everywhere:
+1) write-> example anthropic-> thinktool[scratchpad take note during chat]
+	-> rules file->standard orders loaded every session-> claude.md
+	-> memory[preferences, facts persisted across session].
+
+2) select-> what the agent expects in current state/step
+
+	Docs   Tools   History  APIs   Memory
+			
+			|
+		current state what agent wants
+			|
+		focused context 
+	A best example would be comparison between traditional rag vs agentic rag also go through RAG-MCP paper for rag over tool definitions[3.2x accuracy increased].
+
+3)Compress -> reserve token but also preserve what is needed.
+	
+10k tokens   ---------------------------------------->summaries,facts 1k token
+raw document
+redundant data
+old conversations
+
+
+Can be done before we pass to llm, during working and after work
+i) before sending to llm 
+10k tokens
+document ------> chunk1----------> re-rank------------------------------> top-k chunks[context] reduced tokens->llm
+		 chunk2
+		 chunk3
+		[chunks go with necessary chunking strategies, check the strategies]
+ii)during working 
+	we can either:
+	1)Running summary[after every exchange everything should turn into summary].
+	2)trimming[hard cutoff of old conversations when token reaches limit].
+	3)Auto-compaction[seen in claude when 95% capacity reached, safety net[proactive contexts].
+iii)After work -> I don't want the whole output but expect the 50k tokens output-> 10k tokens structured output in necessary format.
+
+4)Isolate-> instead of one agent
+
+	divide into multiple sub-agent and provide their context window
+
+	                                            Parent agent
+		        |                               |                                                                   |
+subagent1[50k tokens --> 10k tokens]                   subagent2[clean context focused task]                 subagent3[no cross contamination]
+
+
+
+=>Let's see why agent fails and where the context engineering have to be given more importance to:
+1) Context poisoning:
+	Iterate output-> info passed on to the next step as input here, the fix is to add debugging at every layer and you can either make sure we create summaries if important or just get rid of old convos
+
+2)Context distracting: 
+	Long context history->agent stops thinking by itself and repeats based on the pattern that it saw recently, forgets what it was trained for and follows the recent bias
+fix: here is to Summarizing and aggressively pruning even when the context window is huge 
+remember quality of context>quantity of context.
+
+3)Context confusion:
+	multiple tools connected? 
+there was a paper went through that one of the models with 46 tools failed in certain env but it passed when only 20 tools was connected it worked fine in the same environment.
+
+fix: tool masking or rag-mcp[paper read].
+
+4)Context clash: 
+	Contradicting in the context provides inconsistent behaviour
+	Example:
+system prompt-> use metrics for calculating something.
+retrieved docs/rag->use some other units.
+user history-> he usually gets solution in inches or feet.
+
+fix: Provide priority wherever necessary -> high for system prompts, mid for retrieved docs [give a check before] and low for history always.
+
+All above by drew breunig's taxonomy paper.
+
+
+Best Practices to keep in mind:
+1)Specific enough for autonomous behaviour and also allow agent to think itself wherever necessary.
+2)start minimal and iterate[write first draft-> test on real tasks-> find gap of error and rewrite].
+3)minimal is not short[ there might be tasks that need long context/tokens so it's fine but make sure it is needed and one of the above doesn't fail].
+4)Tool masking>tool removing[tool masking with k+v cache ,rag-mcp one of nthe best].
+
+
+One more paper-> Dorothy human layer[codex]:
+Divided 3 steps needed while trusting agent to build something,
+=>Research: explore codebase, produce research file[60% of tokens to 10%].
+{similar comparison here, write from one of the strats mentioned above-> report generated and subagents for isolate}
+=>plan : fresh context window[detailed 200 token description]
+	need HITL.
+=>Implement: fresh context window but repeat step by step.
+	->progress.md to track status for example
+
+More examples:
+	-> Claude:95% auto-compaction, hybrid retrieval and subagents.
+	->manus-> multiple tool, tool masking with kv caching.
+	->Open AI->gpt models->visual tokens->Rl for tool strategy.
+	->Google ADK->scoped context, transformers separate, separate view/storage.
+
+
+	
+
+
+
+
+ 

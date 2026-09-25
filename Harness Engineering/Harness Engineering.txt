@@ -1,0 +1,285 @@
+Harness Engineering:
+
+ harness is the runtime system that connects an AI model to its environment, gives it capabilities, manages its context and execution loop, enforces boundaries, and determines whether its work is successful.
+
+mental model:
+
+user->harness[context,tools, memory, loops, permission, guardrails, evaluations and observability]-> model[reasoniing]->exectuion[filesystem,apis,db,browser,shell and git]->result->harness[observe the result]->model
+
+why did this harness engineering became important:
+old way:
+human->writes code->compiler->tests->deploy
+
+AI assisted software->
+Human->prompt->AI->code->Human review
+
+Agentic Software:
+Human->objective->agent->plan->tools->code->run test->failure check->reason-> fix->test again repeat.
+
+go through papers,
+OpenAI's experience is a particularly useful illustration: when they built a product with agents producing the code, they found that the bottleneck moved toward 
+->scaffolding,
+-> tools, 
+->repository structure, feedback loops,
+-> observability and constraints.
+
+Just know harness is not prompting
+prompt would be like:
+You are one Java developer.
+fix bugs
+Run tests.
+Follow best coding practices.
+
+Now harness would be like:
+model + let codebase scan-> code search->shell->maven->junit->git->test result->context manager->error logs->permission check->retry loop->evals and stop conditions.
+
+anatomy of harness:
+harness
+context->what model sees
++
+tools->what model can do
++
+loop->how model continue ->state/memory->guardrails->permissions->Observability->evals and feedback->condition stop[flowchart]
+
+
+Agent loop
+we know input->model-> some tool call has to be done-> yes or no->final
+	|
+	execute tool->result->model->repeat
+
+while(!finished)
+{
+	String response=model.generate(code)
+	if(!response.isEmpty())
+		{
+ 		return response;
+		}
+ToolCall ...
+context.add(result)
+}
+pseudocode would be like being the heart of agent.
+
+our harness exposes here 
+tools:
+readFile(),searchCode(),runMaven() and readLogs()
+
+the model will receive why app didn't start?
+available tools:
+the four above then 
+Harness:
+execute Maven
+result:
+BeanCreationException
+
+Result goes back to model:
+
+Tool result:
+BeanCreationException...
+========================================================================================================================================================================================================================================================================================================================================================================================
+=> State Management
+State management is how the harness tracks the current condition and progress of an agent execution.
+Context is what the model sees, state is what the system knows about the execution.
+State can contain:
+
+->objective
+->current task
+->current iteration
+->tool calls made
+->files modified
+->tests passed/failed
+->errors encountered
+->agent status
+->budget remaining
+->checkpoint
+
+Example:
+AgentState {
+    objective;
+    currentTask;
+    iteration;
+    filesChanged;
+    testResults;
+    errors;
+    toolHistory;
+    status;
+}
+State allows the harness to answer:
+Where are we?
+What already happened?
+What failed?
+What should happen next?
+
+
+Flow:
+User Objective->Create Agent State->objective, current task, iteration, tool history, test results, errors->Model->Tool Call->Tool Result->Update State->Continue / Stop
+============================================================================================================================================================================================
+============================================================================================================================================================================================
+=>Tool Contracts & Result Normalization
+A tool contract defines exactly what a model is allowed to call and what input/output format the harness expects.
+Result normalization converts messy tool output into structured information useful to the model.
+
+A tool should define:
+
+Tool name
+Purpose
+Input schema
+Output schema
+Permissions
+Timeout
+Error behavior
+
+Example:
+
+runMaven()
+Input:
+{
+    command: "test"
+}
+Output:
+{
+    status: "FAILED",
+    exitCode: 1,
+    failedTests: [...],
+    errors: [...]
+}
+
+Instead of giving the model 50,000 lines of Maven output:
+
+Maven->50,000 lines then harness parses our output->faiures errors extracted and then structured output->model.
+This makes tool interaction predictable.
+
+Flowchart
+Model->Tool Request->Validate Tool Contract->Check Input
+->Execute Tool
+->Raw Result
+->Normalize / Parse
+->Structured Result
+->Model
+
+
+============================================================================================================================================================================================
+============================================================================================================================================================================================
+Human-in-the-Loop
+Human-in-the-loop means the harness decides that certain actions require human approval before execution.
+The model can propose an action, but the harness controls whether that action can happen automatically.
+
+Low-risk actions:
+
+readFile()
+searchCode()
+runTests()
+
+can be automatic.
+
+Higher-risk actions:
+git push
+production deployment
+database migration
+delete files
+access sensitive data
+can require approval.
+
+The important concept is:
+
+Autonomy is a policy decision made by the harness.
+
+Flow:
+Model->
+Tool Request->
+Policy Check-> Low Risk or High Risk -> high risk means Human Approval->Allow to execute or reject
+                if low risk-> execute
+
+============================================================================================================================================================================================
+============================================================================================================================================================================================
+Progress Detection: the agent is actually moving toward the objective or repeatedly performing ineffective actions and repeating the same again and again.
+
+imagine performing a task-> iteration1-> 10 test failures
+ iteration2->same 10 test failures
+ iteration3-> same 10 test failures
+ iteration4->same  10 test failures
+harness detctes No measurable progress
+
+we need to make sure error changes, fewer errors caught, new evidence detected and tool successfully executing.
+
+flow:
+agent action-> observe result-> measure progress-> yes or no -> yes means continue otherwise check for stagnation -> retry/replan -> stop
+
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+Very important topic here even used in rag based system or any ai system called checkpoints and rollbacks,
+Checkpointing saves a known state before risky agent modifications.
+Rollback restores that state when the agent produces a bad result.
+For coding agents, Git is commonly useful for this.
+
+
+A checkpoint can be either,
+Git commit
+Git branch
+filesystem snapshot
+container snapshot
+database snapshot
+ now, flow here is simple:
+known good state-> add checkpoint->agent changes something-> run tests and check if result is good or bad->yes now this back new known good state-> again we continue here
+											 if bad -> rollback->previous state
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Failure Taxonomy
+A harness should distinguish why an agent failed instead of treating every failure as simply "model failed."
+
+Identify failures:
+Reasoning failure means model misunderstood the problem
+
+Context failure means req information wasn't available
+
+Tool failure/Tool itself failed
+
+Environment failure being JDK/Maven/network/container problem
+
+Policy failure from org, Requested action wasn't allowed
+
+Execution failure->Generated code was incorrect->retry/replan
+
+Verification failure->System couldn't establish success-> fix would be to fix code
+
+Loop failure->Agent repeatedly performed ineffective actions-> stop/replan
+
+flow:
+identify failures-> fix them accordingly-> 1st fix->replan,2nd fix->retry tool,3rd fix-> environment change,4th fix is reject.
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Budget Management:
+Budget management limits how many resources an agent can consume during execution.
+Without budgets, an agent can potentially continue indefinitely.
+
+An agenet harness should enforce,
+Maximum iterations
+Maximum tool calls
+Maximum tokens
+Maximum execution time
+Maximum CPU
+Maximum memory
+Maximum API cost
+
+
+flow: before every action-> check budget allowed-> yes means continue and update budget no means stop
+
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Sandboxing isolates agent execution from the real environment,you know the model may be capable of generating arbitrary commands or code, so the harness gives it a controlled execution. environment.
+
+sandbox can restrict file system access, db access, CPU, memory, credentials and so on.
+				
+Flow not required but here is example:
+Agent:
+"Run this shell command."
+Harness:
+Allowed inside container?
+yes means execute otherwise reject
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+Just like tradeoff:
+The model is probabilistic meaning t generates reasoning and actions based on learned patterns.
+The harness should provide deterministic control wherever possible.=> done in flowchart.
