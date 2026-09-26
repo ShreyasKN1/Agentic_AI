@@ -1,0 +1,198 @@
+Muti-agent Systems:
+
+=>Problem Decomposition:
+User Goal ->What must be accomplished? -> Break into subtasks -> Which subtasks require
+Deterministic code?  LLM reasoning? external tools? another specialist?
+
+AI travel planner
+Becomes,
+Travel Planning
+-> Understand user requirements
+-> Search flights
+-> Search hotels
+-> Research attractions
+-> Build itinerary
+-> Check constraints
+-> Present final plan
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Agent Boundaries:
+Don't create an agent for every function.
+Good boundary
+Research Agent
+    -> Search
+    -> Read
+    -> Compare
+    -> Summarize
+Bad boundary
+->SearchAgent
+->ReadAgent
+->CompareAgent
+->SummarizeAgent
+
+The question is:
+Does this responsibility require independent reasoning, context, tools, or specialization?
+No then ordinary code better.
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+=>Tool Orchestration
+Already a paper called mcp done in one of the folders.
+Serial,parallel,
+Conditional[routing+orchestration],
+Iterative or Looping[tool->result->llm->tool...],
+Aggregator Pattern[Multiple llm->normalize->combine->LLM],
+Handoff-> agent participates in routing and gives to next agent if necessary,
+critic based problem->agentA and agnetB -> critic -> final result[Mainly for quality sensitive AI systems].
+
+=>Context Engineering:
+whole doc for this but here it can be
+->System instructions
+->Previous conversation
+->Task state
+->Tool results
+->Retrieved documents
+->Agent outputs
+->Business rules
+->Constraints
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>State and memory
+
+State
+What the system needs during the current task.
+Trip destination = Paris
+Budget = €2000
+Days = 5
+Flight selected = X
+Hotel selected = Y
+
+Memory
+Information that can persist more thn the current task.
+User prefers budget hotels
+User prefers window seats
+User usually travels between the timings from night to morning.
+
+state->current->redis/Object Store
+memory->long term/preferences->vectorDB/DB.
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Define the agent loop:
+
+Before creating system know these,
+->Maximum iterations
+->Maximum token budget
+->Timeout
+->Tool failure handling
+->Retry limit
+->Termination condition
+
+Otherwise:
+Agent-> tool -> agent ...
+ expensive + unpredictable.
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Reliability:
+LLMs are probabilistic.
+Backend systems:
+input -> deterministic output
+So you need guardrails.
+
+              LLM decisions->guardrails->approval or reject.
+
+Before make sure we add around 5 layers of guardrails:
+
+->Schema validation
+->Tool permission checks
+->Input validation
+->Output validation
+->PII filtering
+->Prompt-injection protection
+->Maximum iterations
+->Rate limits
+->Authorization
+
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Human-in-the-loop
+
+Agent->plan->HITL[patterns, behaviours llm uses to make decision so we need human so it doesn't go out go limit]->execute.
+
+like
+Agent: "I want to transfer ₹50,000."->approval gate->execute payment API else reject.
+
+=>Multi-agent communication
+Agents need a communication mechanism.
+
+AgentA->structured o/p->AgentB
+
+example:
+{
+  "task": "financial_analysis",
+  "status": "completed",
+  "findings": [],
+  "confidence": 0.82,
+  "evidence": []
+}
+prefer
+Agent Output->Structured Contract->Next Agent
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Observability:
+Measure them as they go through AI system:
+->latency
+->Token usage
+->Cost
+->Tool failures
+->Agent iterations
+->Success rate
+->Hallucinations
+->Retrieval quality
+->Guardrail violations
+->Human in the loop
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+
+=>Evaluation
+Not every http 200 means the ai system did the job well,
+ Correct?   Grounded?   Useful? ->for rag
+
+Create test cases:
+->Input
+->Expected behavior
+->Actual output
+->Scores and Failure reason
+
+For agents: 
+choose the correct tool?
+call unnecessary tools?
+stop conditions correctly?
+follow constraints?
+produce correct output?
+
+========================================================================================================================================================================================================================================================================================================================================================================================
+========================================================================================================================================================================================================================================================================================================================================================================================
+Bridge Gap between Backend Development vs AI engineer
+
+Backend world	                 vs            Agentic AI world
+Controller	                                Agent/API entry
+Service						Agent
+Method call					Tool call
+Service orchestration				Agent orchestration
+DTO						Structured agent output
+DB						State / memory
+Cache						Context/state cache
+REST API					Tool
+Workflow engine					Agent graph
+Retry						Agent/tool retry
+Circuit breaker	                                LLM/tool failure handling
+Distributed tracing	                        Agent tracing
+Unit tests	                                Evaluation datasets
+Business rules	                                Guardrails
+Authentication	                                Agent/tool authorization
+Async processing	                        Parallel agents
+Scheduler	                                Autonomous/triggered agent
+Event-driven architecture	                Agent/event workflows
