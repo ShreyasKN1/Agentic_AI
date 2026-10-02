@@ -1,0 +1,139 @@
+Deployent Checks and Observability:
+
+PreCheck of deployments:
+Code
+->
+Unit tests
+->
+Integration tests
+->
+AI evaluation
+ ->
+Security scan
+->
+Dependency scan
+ ->
+Docker build
+ ->
+Container vulnerability scan
+ ->
+Secrets validation
+ ->
+Configuration validation
+ ->
+LLM availability check
+ ->
+Smoke test
+====================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+
+only after these tests ready for staging stage,
+
+Just a reminder,
+
+AI-specific pre-production checks for prod deployment
+
+You need to check:
+
+Functional
+Does request work?
+Does retrieval work?
+Does tool calling work?
+Does structured output work?
+
+Quality
+Is answer grounded?
+Is hallucination rate acceptable?
+Is retrieval quality acceptable?
+Is response relevant?
+
+Performance
+P50 latency
+P95 latency
+P99 latency
+
+TTFT
+tokens/sec
+request throughput[e2e requency latency]
+TPOT
+tokens per second
+requests per second
+
+Cost
+input tokens
+output tokens
+cost/request
+cost/user
+cost/day
+
+
+Safety: Usually covered with guardrails, Observability as well as Verification Layer.
+
+prompt injection
+sensitive data leakage
+unsafe output
+tool abuse
+excessive permissions
+Reliability
+timeouts
+retries
+rate limits
+provider failures
+fallback model
+circuit breaker
+
+All checks done then we move on to staging stage
+
+====================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+
+Staging stage:
+Git push
+->
+CI
+->
+Build
+->
+Tests
+->
+AI Evaluation
+->
+Docker image
+->
+Registry
+->
+Deploy STAGING
+->
+Smoke tests
+->
+AI regression tests
+->
+Performance tests
+->
+Approval
+->
+Production
+
+====================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+Post-deployment checks
+Immediately after production:
+
+Health check/Liveness
+->
+Readiness
+->
+Smoke test
+->
+Real request
+->
+LLM response
+->
+Database
+->
+Vector DB
+->
+External APIs
+->
+Metrics
+->
+Logs
+->
+Traces
